@@ -1,34 +1,54 @@
 ﻿var app = angular.module('app', []);
 
-app.controller('homeCtrl', function () {
+app.factory('ImagesService', ['$http', function ($http) {
+    var apiBase = '/api/Images';
+    var ImagesService = {};
+
+    ImagesService.getImages = function () {
+        return $http.get(apiBase);
+    };
+
+    ImagesService.addImage = function (url) {
+        var image = { "Url": url };
+        return $http.post(apiBase, JSON.stringify(image));
+    };
+
+    ImagesService.removeImage = function (id) {
+        return $http.delete(apiBase + "/" + id);
+    };
+
+    return ImagesService; 
+}]);
+
+app.controller('homeCtrl', function ($scope,ImagesService) {
 
     var vm = this;
 
     vm.newUrl = 'http://a5.mzstatic.com/us/r30/Purple7/v4/ab/af/3e/abaf3e37-3582-80d0-c489-5fd91ae3b145/icon256.png';
-    
+
     vm.addImage = function () {
-        vm.images.push({ url: vm.newUrl, site: getDomain(vm.newUrl) });
+        ImagesService.addImage(vm.newUrl).success(function(result) {
+            vm.images.push({ url: result.Url, site: getDomain(result.Url), id: result.Id });
+        });
     }
 
     vm.removeImage = function (image) {
-        var index = vm.images.indexOf(image);
-        vm.images.splice(index, 1);
+        ImagesService.removeImage(image.id).success(function (result) {
+            var index = vm.images.indexOf(image);
+            vm.images.splice(index, 1);
+        });
     }
 
-    vm.images = [
-        {
-            site: 'static-s.aa-cdn.net',
-            url: 'https://static-s.aa-cdn.net/img/ios/738947690/7a027b65ba509a84dea7dbe58e22cde5?v=1'
-        },
-        {
-            site: 'pbs.twimg.com',
-            url: 'https://pbs.twimg.com/profile_images/626824575028887552/hZDA-xsr.jpg'
-        },
-        {
-            site: 'file-extensions.org',
-            url: 'http://www.file-extensions.org/imgs/articles/4/322/live-wallpaper-icon.png'
-        }
-    ];
+    vm.getImages = function () {
+        vm.images = [];
+        ImagesService.getImages().success(function (result) {
+            result.forEach(function (value) {
+                vm.images.push({ url: value.Url, site: getDomain(value.Url), id: value.Id });
+            });
+        });
+    }
+
+    vm.getImages();
 
     getDomain = function (url) {
         var a = document.createElement('a');
